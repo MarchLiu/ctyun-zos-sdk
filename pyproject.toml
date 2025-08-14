@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctyun-zos-sdk"
+version = "0.1.0"
+description = "A boto3-compatible SDK for CTyun Object Storage (ZOS) with httpx backend"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Liu Xin"}
+]
+keywords = ["ctyun", "zos", "object-storage", "s3", "boto3", "httpx"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "httpx>=0.24.0",
+    "botocore>=1.29.0",
+    "boto3>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://e.gitee.com/zgcai/repos/zgcai/ctyun-zos-sdk"
+Repository = "https://e.gitee.com/zgcai/repos/zgcai/ctyun-zos-sdk"
+Documentation = "https://e.gitee.com/zgcai/repos/zgcai/ctyun-zos-sdk/blob/master/README.md"
+Issues = "https://e.gitee.com/zgcai/repos/zgcai/ctyun-zos-sdk/issues/table"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
