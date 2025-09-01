@@ -337,3 +337,92 @@ class AsyncZOSClient:
                 metadata_key = key[11:]  # Remove "x-amz-meta-" prefix
                 metadata[metadata_key] = value
         return metadata
+
+    async def put_access_policy(self, Bucket: str, key: str, Policy: str, **kwargs) -> Dict[str, Any]:
+        """Set object ACL asynchronously.
+        
+        Supports both canned ACLs via the ``x-amz-acl`` header and full ACL
+        policies by sending the ACL XML in the request body.
+        
+        Args:
+            Bucket: Bucket name
+            key: Object key
+            Policy: Either a canned ACL name (e.g. "private", "public-read")
+                or a full ACL XML string per S3 ``PutObjectAcl``.
+            **kwargs: Additional parameters
+        """
+        # Target the ACL subresource
+        url = f"{self._build_url(Bucket, key)}?acl"
+
+        # Determine whether this is a canned ACL or a full ACL XML
+        canned_acls = {
+            "private",
+            "public-read",
+            "public-read-write",
+            "authenticated-read",
+            "bucket-owner-read",
+            "bucket-owner-full-control",
+            "log-delivery-write",
+        }
+
+        is_canned = Policy in canned_acls
+        body_bytes = None if is_canned else Policy.encode("utf-8")
+
+        # Prepare headers; attach x-amz-acl for canned ACL
+        headers = self._get_headers("PUT", body_bytes)
+        if is_canned:
+            headers["x-amz-acl"] = Policy
+
+        signed_headers = self._sign_request("PUT", url, headers, body_bytes)
+        
+        try:
+            response = await self.http_client.put(
+                url,
+                headers=signed_headers,
+                content=b"" if body_bytes is None else body_bytes,
+            )
+            response.raise_for_status()
+            return {
+                "ResponseMetadata": {
+                    "HTTPStatusCode": response.status_code,
+                    "HTTPHeaders": dict(response.headers),
+                }
+            }
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500:
+                raise ZOSServerError(f"Server error: {e.response.status_code}") from e
+            else:
+                raise ZOSClientError(f"Client error: {e.response.status_code}") from e
+        except Exception as e:
+            raise ZOSError(f"Request failed: {str(e)}") from e
+
+    async def get_access_policy(self, Bucket: str, key: str, **kwargs) -> Dict[str, Any]:
+        """Get object ACL (``?acl``) asynchronously.
+        
+        Returns the raw ACL XML in ``Body`` along with response metadata.
+        
+        Args:
+            Bucket: Bucket name
+            key: Object key
+            **kwargs: Additional parameters
+        """
+        url = f"{self._build_url(Bucket, key)}?acl"
+        headers = self._get_headers("GET")
+        signed_headers = self._sign_request("GET", url, headers)
+        try:
+            response = await self.http_client.get(url, headers=signed_headers)
+            response.raise_for_status()
+            return {
+                "Body": response.text,
+                "ResponseMetadata": {
+                    "HTTPStatusCode": response.status_code,
+                    "HTTPHeaders": dict(response.headers),
+                }
+            }
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500:
+                raise ZOSServerError(f"Server error: {e.response.status_code}") from e
+            else:
+                raise ZOSClientError(f"Client error: {e.response.status_code}") from e
+        except Exception as e:
+            raise ZOSError(f"Request failed: {str(e)}") from e

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctyun-zos-sdk"
-version = "0.1.0"
+version = "0.1.2"
 description = "A boto3-compatible SDK for CTyun Object Storage (ZOS) with httpx backend"
 readme = "README.md"
 license = {text = "MIT"}
