@@ -3,7 +3,7 @@
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, Union, BinaryIO
+from typing import Optional, Dict, Any, Union, BinaryIO, Generator
 from urllib.parse import urlparse
 
 import httpx
@@ -145,13 +145,15 @@ class ZOSClient:
         """
         url = self._build_url(Bucket, Key)
         headers = self._get_headers("GET")
+        if "Range" in kwargs:
+            headers["Range"] = kwargs["Range"]
         signed_headers = self._sign_request("GET", url, headers)
         
         try:
             response = self.http_client.get(url, headers=signed_headers)
             response.raise_for_status()
             
-            return {
+            result = {
                 "Body": response.content,
                 "ContentLength": len(response.content),
                 "ContentType": response.headers.get("content-type"),
@@ -163,6 +165,9 @@ class ZOSClient:
                     "HTTPHeaders": dict(response.headers)
                 }
             }
+            if "Range" in kwargs:
+                result["ContentLength"] = int(result.get("content-length", result.get("Content-Length")))
+            return result
         except httpx.HTTPStatusError as e:
             if e.response.status_code >= 500:
                 raise ZOSServerError(f"Server error: {e.response.status_code}") from e
@@ -170,6 +175,23 @@ class ZOSClient:
                 raise ZOSClientError(f"Client error: {e.response.status_code}") from e
         except Exception as e:
             raise ZOSError(f"Request failed: {str(e)}") from e
+
+            
+    def head_object(self, Bucket: str, Key: str, **kwargs) -> Dict[str, Any]:
+        """Get an object Header from S3 asynchronously.
+        
+        Args:
+            Bucket: Bucket name
+            Key: Object key
+            **kwargs: Additional parameters
+        """
+        url = self._build_url(Bucket, Key)
+        headers = self._get_headers("HEAD")
+        if "Range" in kwargs:
+            headers["Range"] = kwargs["Range"]
+        signed_headers = self._sign_request("HEAD", url, headers)
+        response = self.http_client.head(url, headers=signed_headers)
+        return response.headers
 
     def put_object(self, Bucket: str, Key: str, Body: Union[str, bytes, BinaryIO], **kwargs) -> Dict[str, Any]:
         """Put an object to S3.
