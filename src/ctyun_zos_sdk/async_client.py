@@ -152,9 +152,10 @@ class AsyncZOSClient:
             response = await self.http_client.get(url, headers=signed_headers)
             response.raise_for_status()
             
+            content_length = len(response.content)
             result = {
                 "Body": response.content,
-                "ContentLength": len(response.content),
+                "ContentLength": content_length,
                 "ContentType": response.headers.get("content-type"),
                 "ETag": response.headers.get("etag"),
                 "LastModified": response.headers.get("last-modified"),
@@ -165,7 +166,8 @@ class AsyncZOSClient:
                 }
             }
             if "Range" in kwargs:
-                result["ContentLength"] = int(result.get("content-length", result.get("Content-Length")))
+                start = int(kwargs["Range"].split("=")[1].split("-")[0])
+                result["ContentRange"] = f"bytes {start}-{start+content_length-1}/{content_length}"
             return result
             
         except httpx.HTTPStatusError as e:
